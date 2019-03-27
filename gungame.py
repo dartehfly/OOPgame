@@ -134,6 +134,8 @@ button_start = Button('resources/buttons/button_start.png', 'resources/buttons/b
 button_players = Button('resources/buttons/button_players_1.png', 'resources/buttons/button_players_2.png', [46, 40])
 button_play = Button('resources/buttons/button_play.png', 'resources/buttons/button_play_hover.png', [1020, 40])
 
+# Characters
+
 # Images
 image_title = Image('resources/images/image_title.png', [0, 0])
 image_singleplayer_menu = Image('resources/images/image_singleplayer_menu.png', [0, 0])
@@ -144,9 +146,9 @@ image_menu_selectbuttons2 = Image('resources/images/image_menu_selectbuttons.png
 
 # Selectors
 com_diff = Selector('resources/images/image_com_easy.png', 'resources/images/image_com_medium.png', 'resources/images/image_com_hard.png', [945,350])
-selector = Selector('resources/images/image_menu_pistol_stats.png', 'resources/images/image_menu_smg_stats.png', 'resources/images/image_menu_sniper_stats.png', [155, 206])
-selector1 = Selector('resources/images/image_menu_pistol_stats.png', 'resources/images/image_menu_smg_stats.png', 'resources/images/image_menu_sniper_stats.png', [55, 206])
-selector2 = Selector('resources/images/image_menu_pistol_stats.png', 'resources/images/image_menu_smg_stats.png', 'resources/images/image_menu_sniper_stats.png', [658, 206])
+selector = Selector('resources/images/image_weapon_1.png', 'resources/images/image_weapon_2.png', 'resources/images/image_weapon_3.png', [155, 206])
+selector1 = Selector('resources/images/image_weapon_1.png', 'resources/images/image_weapon_2.png', 'resources/images/image_weapon_3.png', [55, 206])
+selector2 = Selector('resources/images/image_weapon_1.png', 'resources/images/image_weapon_2.png', 'resources/images/image_weapon_3.png', [658, 206])
 
 # Setting Starting Variables
 done = False
@@ -156,6 +158,9 @@ choice = 0
 choice1 = 0
 choice2 = 0
 difficulty = 0
+leftpos = [10, 320]
+rightpos = [1190,320]
+move_steps = 0
 
 # Starting Menu Music
 pygame.mixer.music.play(-1)
@@ -169,7 +174,7 @@ while not done:
 
     pressed = pygame.mouse.get_pressed()
     mouse = pygame.mouse.get_pos()
-    print(mouse)
+    #print(mouse)
     if scene == 0:
 
         # Checking for Button Hover
@@ -269,6 +274,9 @@ while not done:
             button_play.hover(hovering)
             window.blit(button_play.image, button_play.rect)
 
+        player = Player('resources/players/character_left.png', choice, leftpos)
+        com = Com('resources/players/character_right.png', difficulty, rightpos)
+
         # Two Player
         if gamemode == 1:
 
@@ -324,25 +332,80 @@ while not done:
         # Player Selection Button
         window.blit(button_players.image, button_players.rect)
 
-    if scene == 2:
+        player_left = Player('resources/players/character_left.png', choice1, leftpos)
+        player_right = Player('resources/players/character_right.png', choice2, rightpos)
 
-        # Creating Players
-        player = Player('player_left.png', choice, [20, 345])
-        com = Com('player_right.png', difficulty, [1230,345])
+    if scene == 2:
 
         # Loading Static Images
         window.blit(bg_game.image, bg_game.rect)
 
-        # Loading Characters
+        # Player Movement
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_UP]:
+            player.rect.top -= player.movespeed
+        if keys[pygame.K_DOWN]:
+            player.rect.top += player.movespeed
+        if player.rect.top <= 40:
+            player.rect.top += player.movespeed
+        elif player.rect.top >= 600:
+            player.rect.top -= player.movespeed
+
+        # Com AI
+        print(com.rect.top)
+        if com.rect.top <= 40:
+            move_steps = 20
+        elif com.rect.top >= 600:
+            move_steps = -20
+
+        if move_steps > 1:
+            move_steps -= 1
+            com.rect.top += com.movespeed
+        elif move_steps < 1:
+            move_steps += 1
+            com.rect.top -= com.movespeed
+        else:
+            move_steps = random.randint(-30,30)
+
+
+        # Draw Characters
         window.blit(player.image, player.rect)
         window.blit(com.image, com.rect)
 
 
     if scene == 3:
 
+        # Player 1 Movement
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_w]:
+            player_left.rect.top -= player_left.movespeed
+        if keys[pygame.K_s]:
+            player_left.rect.top += player_left.movespeed
+
+        if player_left.rect.top <= 40:
+            player_left.rect.top += player_left.movespeed
+        elif player_left.rect.top >= 600:
+            player_left.rect.top -= player_left.movespeed
+
+        # Player 2 Movement
+        if keys[pygame.K_UP]:
+            player_right.rect.top -= player_right.movespeed
+        if keys[pygame.K_DOWN]:
+            player_right.rect.top += player_right.movespeed
+
+        if player_right.rect.top <= 40:
+            player_right.rect.top += player_right.movespeed
+        elif player_right.rect.top >= 600:
+            player_right.rect.top -= player_right.movespeed
+
         # Loading Static Images
         window.blit(bg_game.image, bg_game.rect)
 
+        # Draw Characters
+        window.blit(player_left.image, player_left.rect)
+        window.blit(player_right.image, player_right.rect)
+
     pygame.display.flip()
+    clock.tick(120)
 
 pygame.quit()
