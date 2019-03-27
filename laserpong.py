@@ -417,6 +417,6 @@ while not done:
         window.blit(player_right.image, player_right.rect)
 
     pygame.display.flip()
-    clock.tick(120)
+    clock.tick(60)
 
 pygame.quit()
