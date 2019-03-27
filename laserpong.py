@@ -14,6 +14,7 @@ gray = (115, 115, 115)
 yellow = (255, 255, 0)
 clock = pygame.time.Clock()
 
+
 # Creating Classes
 class Background(pygame.sprite.Sprite):
     def __init__(self, image_file, location):
@@ -51,22 +52,22 @@ class Button(pygame.sprite.Sprite):
 
 
 class Selector(pygame.sprite.Sprite):
-    def __init__(self, choice0, choice1, choice2, location):
+    def __init__(self, image0, image1, image2, location):
         pygame.sprite.Sprite.__init__(self)
-        self.choice0 = pygame.image.load(choice0)
-        self.choice1 = pygame.image.load(choice1)
-        self.choice2 = pygame.image.load(choice2)
-        self.image = pygame.image.load(choice0)
+        self.image0 = pygame.image.load(image0)
+        self.image1 = pygame.image.load(image1)
+        self.image2 = pygame.image.load(image2)
+        self.image = pygame.image.load(image0)
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
 
-    def selection(self, choice):
-        if choice == 0:
-            self.image = self.choice0
-        elif choice == 1:
-            self.image = self.choice1
+    def selection(self, value):
+        if value == 0:
+            self.image = self.image0
+        elif value == 1:
+            self.image = self.image1
         else:
-            self.image = self.choice2
+            self.image = self.image2
 
 
 class Image(pygame.sprite.Sprite):
@@ -75,6 +76,7 @@ class Image(pygame.sprite.Sprite):
         self.image = pygame.image.load(image_file)
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
+
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, image_file, weapon, location):
@@ -99,31 +101,29 @@ class Player(pygame.sprite.Sprite):
 
 
 class Com(pygame.sprite.Sprite):
-    def __init__(self, image_file, difficulty, location):
+    def __init__(self, image_file, diffvalue, location):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load(image_file)
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
         self.health = 100
-        if difficulty == 0:
+        if diffvalue == 0:
             self.movespeed = 3
-            self.firerate = random.randint(1,4)
-            self.damage = random.randint(1,4)
-        elif difficulty == 1:
+            self.firerate = random.randint(1, 4)
+            self.damage = random.randint(1, 4)
+        elif diffvalue == 1:
             self.movespeed = 6
-            self.firerate = random.randint(3,7)
-            self.damage = random.randint(3,7)
+            self.firerate = random.randint(3, 7)
+            self.damage = random.randint(3, 7)
         else:
             self.movespeed = 9
-            self.firerate = random.randint(5,10)
-            self.damage = random.randint(5,10)
+            self.firerate = random.randint(5, 10)
+            self.damage = random.randint(5, 10)
 
-# Loading Sounds
 
+# Sounds
 music = pygame.mixer.music.load('resources/sounds/music.mp3')
 button = pygame.mixer.Sound('resources/sounds/button.wav')
-
-# Loading Images
 
 # Backgrounds
 bg_menu = Background('resources/backgrounds/bg_menu.png', [0, 0])
@@ -134,8 +134,6 @@ button_start = Button('resources/buttons/button_start.png', 'resources/buttons/b
 button_players = Button('resources/buttons/button_players_1.png', 'resources/buttons/button_players_2.png', [46, 40])
 button_play = Button('resources/buttons/button_play.png', 'resources/buttons/button_play_hover.png', [1020, 40])
 
-# Characters
-
 # Images
 image_title = Image('resources/images/image_title.png', [0, 0])
 image_singleplayer_menu = Image('resources/images/image_singleplayer_menu.png', [0, 0])
@@ -145,10 +143,26 @@ image_menu_selectbuttons1 = Image('resources/images/image_menu_selectbuttons.png
 image_menu_selectbuttons2 = Image('resources/images/image_menu_selectbuttons.png', [658, 206])
 
 # Selectors
-com_diff = Selector('resources/images/image_com_easy.png', 'resources/images/image_com_medium.png', 'resources/images/image_com_hard.png', [945,350])
-selector = Selector('resources/images/image_weapon_1.png', 'resources/images/image_weapon_2.png', 'resources/images/image_weapon_3.png', [155, 206])
-selector1 = Selector('resources/images/image_weapon_1.png', 'resources/images/image_weapon_2.png', 'resources/images/image_weapon_3.png', [55, 206])
-selector2 = Selector('resources/images/image_weapon_1.png', 'resources/images/image_weapon_2.png', 'resources/images/image_weapon_3.png', [658, 206])
+com_diff = Selector(
+    'resources/images/image_com_easy.png',
+    'resources/images/image_com_medium.png',
+    'resources/images/image_com_hard.png', [945, 350]
+    )
+selector = Selector(
+    'resources/images/image_weapon_1.png',
+    'resources/images/image_weapon_2.png',
+    'resources/images/image_weapon_3.png', [155, 206]
+    )
+selector1 = Selector(
+    'resources/images/image_weapon_1.png',
+    'resources/images/image_weapon_2.png',
+    'resources/images/image_weapon_3.png', [55, 206]
+    )
+selector2 = Selector(
+    'resources/images/image_weapon_1.png',
+    'resources/images/image_weapon_2.png',
+    'resources/images/image_weapon_3.png', [658, 206]
+    )
 
 # Setting Starting Variables
 done = False
@@ -159,7 +173,7 @@ choice1 = 0
 choice2 = 0
 difficulty = 0
 leftpos = [10, 320]
-rightpos = [1190,320]
+rightpos = [1190, 320]
 move_steps = 0
 
 # Starting Menu Music
@@ -174,7 +188,7 @@ while not done:
 
     pressed = pygame.mouse.get_pressed()
     mouse = pygame.mouse.get_pos()
-    #print(mouse)
+
     if scene == 0:
 
         # Checking for Button Hover
@@ -352,7 +366,6 @@ while not done:
             player.rect.top -= player.movespeed
 
         # Com AI
-        print(com.rect.top)
         if com.rect.top <= 40:
             move_steps = 20
         elif com.rect.top >= 600:
@@ -365,13 +378,11 @@ while not done:
             move_steps += 1
             com.rect.top -= com.movespeed
         else:
-            move_steps = random.randint(-30,30)
-
+            move_steps = random.randint(-30, 30)
 
         # Draw Characters
         window.blit(player.image, player.rect)
         window.blit(com.image, com.rect)
-
 
     if scene == 3:
 
