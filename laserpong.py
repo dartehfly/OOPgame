@@ -1,4 +1,5 @@
 import pygame
+import pygame.freetype
 import random
 
 pygame.init()
@@ -79,25 +80,51 @@ class Image(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, image_file, weapon, location):
+    def __init__(self, image_file, weapon, direction, location):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load(image_file)
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
         self.health = 100
         self.weapon = weapon
+        self.lastshot = pygame.time.get_ticks()
+        self.direction = direction
         if self.weapon == 0:
+            self.velocity = 28
             self.movespeed = 10
-            self.firerate = 6
-            self.damage = 4
+            self.firerate = 500
+            self.damage = 12
         elif self.weapon == 1:
+            self.velocity = 20
             self.movespeed = 6
-            self.firerate = 9
-            self.damage = 1
+            self.firerate = 200
+            self.damage = 4
         else:
-            self.movespeed = 3
-            self.firerate = 1
-            self.damage = 10
+            self.velocity = 120
+            self.movespeed = 4
+            self.firerate = 1200
+            self.damage = 25
+
+    def fire(self, target):
+        time = pygame.time.get_ticks()
+        if time - self.lastshot >= self.firerate:
+            self.lastshot = time
+            bullets.append(Bullet('resources/images/image_laser.png', self.direction, target,
+                                  player.velocity, self.damage, [self.rect.left + 40, self.rect.top + 40]))
+
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, image_file, direction, target, velocity, damage, location):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load(image_file)
+        self.rect = self.image.get_rect()
+        self.rect.left, self.rect.top = location
+        self.velocity = velocity*direction
+        self.damage = damage
+        self.target = target
+
+    def detect(self, target):
+        return self.rect.colliderect(target.rect)
 
 
 class Com(pygame.sprite.Sprite):
@@ -109,21 +136,22 @@ class Com(pygame.sprite.Sprite):
         self.health = 100
         if diffvalue == 0:
             self.movespeed = 3
-            self.firerate = random.randint(1, 4)
-            self.damage = random.randint(1, 4)
+            self.firerate = random.randint(600, 900)
+            self.damage = random.randint(3, 12)
         elif diffvalue == 1:
             self.movespeed = 6
-            self.firerate = random.randint(3, 7)
-            self.damage = random.randint(3, 7)
+            self.firerate = random.randint(300, 700)
+            self.damage = random.randint(9, 21)
         else:
-            self.movespeed = 9
-            self.firerate = random.randint(5, 10)
-            self.damage = random.randint(5, 10)
+            self.movespeed = 8
+            self.firerate = random.randint(100, 500)
+            self.damage = random.randint(15, 30)
 
 
 # Sounds
 music = pygame.mixer.music.load('resources/sounds/music.mp3')
 button = pygame.mixer.Sound('resources/sounds/button.wav')
+shot = pygame.mixer.Sound('resources/sounds/shot.wav')
 
 # Backgrounds
 bg_menu = Background('resources/backgrounds/bg_menu.png', [0, 0])
@@ -146,26 +174,27 @@ image_menu_selectbuttons2 = Image('resources/images/image_menu_selectbuttons.png
 com_diff = Selector(
     'resources/images/image_com_easy.png',
     'resources/images/image_com_medium.png',
-    'resources/images/image_com_hard.png', [945, 350]
-    )
+    'resources/images/image_com_hard.png',
+    [945, 350])
 selector = Selector(
     'resources/images/image_weapon_1.png',
     'resources/images/image_weapon_2.png',
-    'resources/images/image_weapon_3.png', [155, 206]
-    )
+    'resources/images/image_weapon_3.png',
+    [155, 206])
 selector1 = Selector(
     'resources/images/image_weapon_1.png',
     'resources/images/image_weapon_2.png',
-    'resources/images/image_weapon_3.png', [55, 206]
-    )
+    'resources/images/image_weapon_3.png',
+    [55, 206])
 selector2 = Selector(
     'resources/images/image_weapon_1.png',
     'resources/images/image_weapon_2.png',
-    'resources/images/image_weapon_3.png', [658, 206]
-    )
+    'resources/images/image_weapon_3.png',
+    [658, 206])
 
 # Setting Starting Variables
 done = False
+font = pygame.freetype.Font('resources/fonts/digital-7.ttf', 80)
 scene = 0
 gamemode = 0
 choice = 0
@@ -175,6 +204,7 @@ difficulty = 0
 leftpos = [10, 320]
 rightpos = [1190, 320]
 move_steps = 0
+bullets = []
 
 # Starting Menu Music
 pygame.mixer.music.play(-1)
@@ -288,7 +318,7 @@ while not done:
             button_play.hover(hovering)
             window.blit(button_play.image, button_play.rect)
 
-        player = Player('resources/players/character_left.png', choice, leftpos)
+        player = Player('resources/players/character_left.png', choice, 1, leftpos)
         com = Com('resources/players/character_right.png', difficulty, rightpos)
 
         # Two Player
@@ -346,13 +376,17 @@ while not done:
         # Player Selection Button
         window.blit(button_players.image, button_players.rect)
 
-        player_left = Player('resources/players/character_left.png', choice1, leftpos)
-        player_right = Player('resources/players/character_right.png', choice2, rightpos)
+        player_left = Player('resources/players/character_left.png', choice1, 1, leftpos)
+        player_right = Player('resources/players/character_right.png', choice2, -1, rightpos)
 
     if scene == 2:
 
         # Loading Static Images
         window.blit(bg_game.image, bg_game.rect)
+
+        # Loading Dynamic Images
+        font.render_to(window, (40, 40), str(player.health), white)
+        font.render_to(window, (1160, 40), str(com.health), white)
 
         # Player Movement
         keys = pygame.key.get_pressed()
@@ -364,6 +398,19 @@ while not done:
             player.rect.top += player.movespeed
         elif player.rect.top >= 600:
             player.rect.top -= player.movespeed
+
+        for bullet in bullets:
+            if 40 < bullet.rect.left < 1240:
+                bullet.rect.left += bullet.velocity
+                if bullet.detect(bullet.target):
+                    bullet.target.health -= bullet.damage
+                    bullets.pop(bullets.index(bullet))
+                window.blit(bullet.image, bullet.rect)
+            else:
+                bullets.pop(bullets.index(bullet))
+
+        if keys[pygame.K_SPACE]:
+            player.fire(com)
 
         # Com AI
         if com.rect.top <= 40:
@@ -380,13 +427,15 @@ while not done:
         else:
             move_steps = random.randint(-30, 30)
 
+        print(player.health, com.health)
+
         # Draw Characters
         window.blit(player.image, player.rect)
         window.blit(com.image, com.rect)
 
     if scene == 3:
 
-        # Player 1 Movement
+        # Player 1 Buttons
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
             player_left.rect.top -= player_left.movespeed
@@ -398,7 +447,10 @@ while not done:
         elif player_left.rect.top >= 600:
             player_left.rect.top -= player_left.movespeed
 
-        # Player 2 Movement
+        if keys[pygame.K_SPACE]:
+            player_left.fire(player_right)
+
+        # Player 2 Buttons
         if keys[pygame.K_UP]:
             player_right.rect.top -= player_right.movespeed
         if keys[pygame.K_DOWN]:
@@ -409,14 +461,33 @@ while not done:
         elif player_right.rect.top >= 600:
             player_right.rect.top -= player_right.movespeed
 
+        if keys[pygame.K_RETURN]:
+            player_right.fire(player_left)
+
         # Loading Static Images
         window.blit(bg_game.image, bg_game.rect)
+
+        # Loading Dynamic Images
+        font.render_to(window, (40, 40), str(player_left.health), white)
+        font.render_to(window, (1160, 40), str(player_right.health), white)
+
+        for bullet in bullets:
+            if -30 < bullet.rect.left < 1250:
+                bullet.rect.left += bullet.velocity
+                if bullet.detect(bullet.target):
+                    bullet.target.health -= bullet.damage
+                    bullets.pop(bullets.index(bullet))
+                window.blit(bullet.image, bullet.rect)
+            else:
+                bullets.pop(bullets.index(bullet))
+
+        print(player_left.health, player_right.health)
 
         # Draw Characters
         window.blit(player_left.image, player_left.rect)
         window.blit(player_right.image, player_right.rect)
 
     pygame.display.flip()
-    clock.tick(60)
+    clock.tick(33.3)
 
 pygame.quit()
