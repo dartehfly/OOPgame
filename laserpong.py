@@ -55,6 +55,7 @@ class Button(pygame.sprite.Sprite):
         self.toggled = 0
         self.image = self.image_file
 
+
 class Selector(pygame.sprite.Sprite):
     def __init__(self, image0, image1, image2, location):
         pygame.sprite.Sprite.__init__(self)
@@ -119,7 +120,6 @@ class Player(pygame.sprite.Sprite):
         self.health = 100
         self.lastshot = pygame.time.get_ticks()
 
-
     def fire(self, target):
         time = pygame.time.get_ticks()
         if time - self.lastshot >= self.firerate:
@@ -127,6 +127,10 @@ class Player(pygame.sprite.Sprite):
             bullets.append(Bullet('resources/images/image_laser.png', self.direction, target,
                                   player.velocity, self.damage, [self.rect.left + 40, self.rect.top + 40]))
             shot.play()
+
+    def update(self):
+        if self.health <= 0:
+            self.image = pygame.image.load('resources/images/image_ship_exploded.png')
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -172,8 +176,13 @@ class Com(pygame.sprite.Sprite):
         if time - self.lastshot >= self.firerate:
             self.lastshot = time
             bullets.append(Bullet('resources/images/image_laser.png', -1, player,
-                                  player.velocity, self.damage, [self.rect.left + 40, self.rect.top + 40]))
+                                  self.velocity, self.damage, [self.rect.left + 40, self.rect.top + 40]))
             shot.play()
+
+    def update(self):
+        if self.health <= 0:
+            self.image = pygame.image.load('resources/images/image_ship_exploded.png')
+
 
 # Sounds
 music = pygame.mixer.music.load('resources/sounds/music.mp3')
@@ -188,7 +197,7 @@ bg_game = Background('resources/backgrounds/bg_game.png', [0, 0])
 button_start = Button('resources/buttons/button_start.png', 'resources/buttons/button_start_hover.png', [545, 590])
 button_players = Button('resources/buttons/button_players_1.png', 'resources/buttons/button_players_2.png', [46, 40])
 button_play = Button('resources/buttons/button_play.png', 'resources/buttons/button_play_hover.png', [1020, 40])
-button_playagain = Button('resources/buttons/button_playagain.png', 'resources/buttons/button_playagain_hover.png', [416, 400])
+button_playagain = Button('resources/buttons/button_again.png', 'resources/buttons/button_again_hover.png', [416, 400])
 button_quit = Button('resources/buttons/button_quit.png', 'resources/buttons/button_quit_hover.png', [655, 400])
 
 # Images
@@ -398,73 +407,113 @@ while not done:
                 if pressed[0] == 1 and choice2 < 2:
                     choice2 += 1
 
-            # Loading Dynamic Images
+            # Loading Dynamic Images (Play button, both ship selectors)
             button_play.hover(hovering)
             window.blit(button_play.image, button_play.rect)
+
             selector1.selection(choice1)
             window.blit(selector1.image, selector1.rect)
+
             selector2.selection(choice2)
             window.blit(selector2.image, selector2.rect)
 
-        # Player Selection Button
+        # Render Player Number Selection Button.
         window.blit(button_players.image, button_players.rect)
 
         player_left = Player(choice1, 1, leftpos)
         player_right = Player(choice2, -1, rightpos)
 
+    """ Scene 2 is the game in single player vs. a com of their selected difficulty. """
     if scene == 2:
 
-        # Loading Static Images
+        # Loading Static Images (Background).
         window.blit(bg_game.image, bg_game.rect)
 
-        # Loading Dynamic Images
+        # Loading Dynamic Images (Health).
         font.render_to(window, (40, 40), str(player.health), white)
         font.render_to(window, (1160, 40), str(com.health), white)
 
+        # Updates and moves each bullet in the list.
         for bullet in bullets:
-            if 40 < bullet.rect.left < 1240:
+
+            # Ensures that bullets are within the screen, if not, deletes them.
+            if -30 < bullet.rect.left < 1250:
+
+                # Allows for dynamic bullet velocity, and still moves bullet even if the game is over.
                 bullet.rect.left += bullet.velocity
+
+                # Makes bullets only do damage while the game is still going (excluding pause at the end).
                 if game == 0:
+
+                    # Calls on bullet.detect method, checks if it's hit box is colliding with target's.
                     if bullet.detect(bullet.target):
                         bullet.target.health -= bullet.damage
+
+                        # Deletes bullet after it hits the target.
                         bullets.pop(bullets.index(bullet))
+
+                # Excluded from if statement  so that it's still drawn even if it doesn't do damage.
                 window.blit(bullet.image, bullet.rect)
+
             else:
+
+                # Deletes bullet if not on screen.
                 bullets.pop(bullets.index(bullet))
 
+        """ All player controls are within an if statement that ends when a player reaches 0 health. This makes it so 
+        that when a player loses, there is time for their ship to explode and for bullets to continue moving off the 
+        screen. Just allows things that have already started to continue, removes player controls. """
         if game == 0:
 
-            # Player Movement
+            # Checks which keys are pressed, makes a list.
             keys = pygame.key.get_pressed()
+
+            # Player Movement Keys.
             if keys[pygame.K_UP]:
+                # .movespeed is used to move all characters, and allows for variable movespeed depending on ship choice.
                 player.rect.top -= player.movespeed
             if keys[pygame.K_DOWN]:
                 player.rect.top += player.movespeed
+
+            # Bumps the player back down if they try to move above 40 pixels from the top.
             if player.rect.top <= 40:
                 player.rect.top += player.movespeed
+
+            # Just like the last, but for the bottom.
             elif player.rect.top >= 600:
                 player.rect.top -= player.movespeed
 
             if keys[pygame.K_SPACE]:
                 player.fire(com)
 
+            # Com tries to fire every frame, .fire() method applies it's timed cool down.
             com.fire()
 
-            # Com AI
+            """ Computer opponent movement. I originally did just random movement, but found that since it was picking 
+            a random direction every frame, it was extremely stutter-y and didn't move much. I switched to a 'steps' 
+            system, picking a number of steps when it reaches 0 and keeps moving in that direction for a while. """
+
+            # If it reaches the top, move 20 steps down.
             if com.rect.top <= 40:
                 move_steps = 20
+
+            # If it reaches the bottom, move 20 steps up.
             elif com.rect.top >= 600:
                 move_steps = -20
 
+            # If positive steps, remove a step and move down by it's move speed.
             if move_steps > 1:
                 move_steps -= 1
                 com.rect.top += com.movespeed
+            # If negative steps, add a step and move up by it's move speed.
             elif move_steps < 1:
                 move_steps += 1
                 com.rect.top -= com.movespeed
+            # If it runs out of steps, generate more.
             else:
                 move_steps = random.randint(-30, 30)
 
+            # Ends game if either player reaches 0 health, also makes sure health can't go negative.
             if player.health <= 0:
                 player.health = 0
                 game = 1
@@ -474,66 +523,106 @@ while not done:
 
         else:
 
+            # If the game is no longer running, starts counting up frames. Gives time to see the explosion and allows
+            # bullets to go off the end of the screen. Players can't move or shoot.
             pause += 1
 
+            # After 100 frames of pausing, go to the game over screen.
             if pause == 100:
                 scene = 4
 
-        # Draw Characters
+        # Update Characters (only for explosion if 0 health left).
+        player.update()
+        com.update()
+
+        # Render Characters.
         window.blit(player.image, player.rect)
         window.blit(com.image, com.rect)
 
+    """ Scene 3 is the game in multi player against a real-life opponent. """
     if scene == 3:
 
-        # Loading Static Images
+        # Rendering Static Images (Background).
         window.blit(bg_game.image, bg_game.rect)
 
-        # Loading Dynamic Images
+        # Rendering Dynamic Images (Health).
         font.render_to(window, (40, 40), str(player_left.health), white)
         font.render_to(window, (1160, 40), str(player_right.health), white)
 
+        # Updates and moves each bullet in the list.
         for bullet in bullets:
+
+            # Ensures that bullets are within the screen, if not, deletes them.
             if -30 < bullet.rect.left < 1250:
+
+                # Allows for dynamic bullet velocity, and still moves bullet even if the game is over.
                 bullet.rect.left += bullet.velocity
+
+                # Makes bullets only do damage while the game is still going (excluding pause at the end).
                 if game == 0:
+
+                    # Calls on bullet.detect method, checks if it's hit box is colliding with target's.
                     if bullet.detect(bullet.target):
                         bullet.target.health -= bullet.damage
+
+                        # Deletes bullet after it hits the target.
                         bullets.pop(bullets.index(bullet))
+
+                # Excluded from if statement  so that it's still drawn even if it doesn't do damage.
                 window.blit(bullet.image, bullet.rect)
+
             else:
+
+                # Deletes bullet if not on screen.
                 bullets.pop(bullets.index(bullet))
 
+        """ All player controls are within an if statement that ends when a player reaches 0 health. This makes it so 
+        that when a player loses, there is time for their ship to explode and for bullets to continue moving off the 
+        screen. Just allows things that have already started to continue, removes player controls. """
         if game == 0:
 
-            # Player 1 Buttons
+            # Checks which keys are pressed, makes a list.
             keys = pygame.key.get_pressed()
+
+            # Player 1 Movement Keys
             if keys[pygame.K_w]:
                 player_left.rect.top -= player_left.movespeed
+
             if keys[pygame.K_s]:
                 player_left.rect.top += player_left.movespeed
 
+            # Bumps the player back down if they try to move above 40 pixels from the top.
             if player_left.rect.top <= 40:
                 player_left.rect.top += player_left.movespeed
+
+            # Just like the last, but for the bottom.
             elif player_left.rect.top >= 600:
                 player_left.rect.top -= player_left.movespeed
 
+            # Left player fire button, sets bullet target as player_right.
             if keys[pygame.K_SPACE]:
                 player_left.fire(player_right)
 
-            # Player 2 Buttons
+            # Player 2 Movement Keys
             if keys[pygame.K_UP]:
                 player_right.rect.top -= player_right.movespeed
+
             if keys[pygame.K_DOWN]:
                 player_right.rect.top += player_right.movespeed
 
+            # Bumps the player back down if they try to move above 40 pixels from the top.
             if player_right.rect.top <= 40:
                 player_right.rect.top += player_right.movespeed
+
+            # Just like the last, but for the bottom.
             elif player_right.rect.top >= 600:
                 player_right.rect.top -= player_right.movespeed
 
+            # Right player fire button, sets bullet target as player_left.
             if keys[pygame.K_RETURN]:
                 player_right.fire(player_left)
 
+            # Ends game if either player reaches 0 health, also makes sure health can't go negative.
             if player_left.health <= 0:
                 player_left.health = 0
                 game = 1
@@ -543,28 +632,38 @@ while not done:
 
         else:
 
+            # If the game is no longer running, starts counting up frames. Gives time to see the explosion and allows
+            # bullets to go off the end of the screen. Players can't move or shoot.
             pause += 1
 
+            # After 100 frames of pausing, go to the game over screen.
             if pause == 100:
                 scene = 4
 
-        # Draw Characters
+        # Update Characters (only for explosion if 0 health left).
+        player_left.update()
+        player_right.update()
+
+        # Rendering Characters
         window.blit(player_left.image, player_left.rect)
         window.blit(player_right.image, player_right.rect)
 
+    """ Scene 4 is the game over scene, allowing for playing again or quitting. """
     if scene == 4:
 
-        # Loading Static Images
+        # Rendering Static Images (Background, Game Over Text)
         window.blit(bg_menu.image, bg_menu.rect)
         window.blit(image_gameover.image, image_gameover.rect)
 
-        # Checking for Play Again Button Press
+        # Checking for Play Again Button hovering and press
         if 416 < mouse[0] < 625 and 400 < mouse[1] < 464:
 
             hovering1 = 1
 
+            # If left click is pressed, do stuff and play the sound.
             if pressed[0] == 1:
 
+                # Resets game and selection screen options before the user sees them again.
                 scene = 1
                 gamemode = 0
                 game = 0
@@ -575,18 +674,23 @@ while not done:
                 move_steps = 0
                 bullets = []
                 pause = 0
+
+                # Needed a special reset method for this toggleable button as it could be in either state.
                 button_players.reset()
+
+                # Plays button sound.
                 button.play()
 
         else:
 
             hovering1 = 0
 
-        # Checking for Quit Button Press
+        # Checking for Quit Button hovering and press
         if 655 < mouse[0] < 864 and 400 < mouse[1] < 464:
 
             hovering2 = 1
 
+            # If left click is pressed, do stuff and play the sound.
             if pressed[0] == 1:
                 pygame.quit()
                 button.play()
@@ -595,14 +699,15 @@ while not done:
 
             hovering2 = 0
 
-        # Loading Dynamic Images
+        # Tell Play Again button to update if hovering, then draw
         button_playagain.hover(hovering1)
         window.blit(button_playagain.image, button_playagain.rect)
 
+        # Tell Quit button to update if hovering, then draw
         button_quit.hover(hovering2)
         window.blit(button_quit.image, button_quit.rect)
 
-
+    # Update screen, 60fps
     pygame.display.flip()
     clock.tick(60)
 
