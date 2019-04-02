@@ -4,25 +4,36 @@ import random
 
 pygame.init()
 
-# Setting up Window
+# Setting up window.
 window = pygame.display.set_mode((1280, 720))
 pygame.display.set_caption("Laser Pong")
 
 # Globals
-black = (0, 0, 0)
 white = (255, 255, 255)
-gray = (115, 115, 115)
-yellow = (255, 255, 0)
 clock = pygame.time.Clock()
-
+leftpos = [10, 320]
+rightpos = [1190, 320]
+done = False
+font = pygame.freetype.Font('resources/fonts/digital-7.ttf', 80)
 
 # Creating Classes
+
+""" The background class is very straightforward, requiring an image file and a location. It places the image from the
+top left corner. """
+
+
 class Background(pygame.sprite.Sprite):
     def __init__(self, image_file, location):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load(image_file)
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
+
+
+""" The button class allows for some more interesting features. It takes an image file, a pressed image file, for 
+hovering or toggling. It also takes a location, as all things do. The hover method is very simple, allowing for hover
+detection outside the method. If it's being hovered over, it switches images. If not, it uses it's default. The toggle
+method uses a 0 or 1 variable to decide which image to display. It just switches every time it's called. """
 
 
 class Button(pygame.sprite.Sprite):
@@ -56,6 +67,10 @@ class Button(pygame.sprite.Sprite):
         self.image = self.image_file
 
 
+""" Selectors are like togglable buttons with 3 different options. These are used in the ship selection and com 
+difficulty choices. They take a selection number, 0, 1, or 2, and change their image based on that. Very simple. """
+
+
 class Selector(pygame.sprite.Sprite):
     def __init__(self, image0, image1, image2, location):
         pygame.sprite.Sprite.__init__(self)
@@ -75,12 +90,25 @@ class Selector(pygame.sprite.Sprite):
             self.image = self.image2
 
 
+""" Images are just like backgrounds. Really, I didn't need to separate them. """
+
+
 class Image(pygame.sprite.Sprite):
     def __init__(self, image_file, location):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load(image_file)
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
+
+
+""" The player is one of the most dynamic classes. It takes a weapon choice, really the ship choice, and assigns values 
+for bullet velocity, move speed, fire rate and damage. It also takes in the direction of the player and picks the 
+appropriate side image for that. Lastly, it takes a location, which is the center of the screen as defined by a constant
+in the globals section. The reason that it was separated was so that you can have different players on the right and the
+left sides. It also has fire and update methods, the first of which handling weapon fire and cool down. The ship 
+fire rates are in milliseconds, using that number as the delay in between shots. Every time a shot is fired, that time
+is noted down as the most recent shot, and then if the delay is more than the time since the last shot, it shoots again.
+The update method checks if it's health is 0, and changes to the exploded image if so. """
 
 
 class Player(pygame.sprite.Sprite):
@@ -125,12 +153,17 @@ class Player(pygame.sprite.Sprite):
         if time - self.lastshot >= self.firerate:
             self.lastshot = time
             bullets.append(Bullet('resources/images/image_laser.png', self.direction, target,
-                                  player.velocity, self.damage, [self.rect.left + 40, self.rect.top + 40]))
+                                  self.velocity, self.damage, [self.rect.left + 40, self.rect.top + 40]))
             shot.play()
 
     def update(self):
         if self.health <= 0:
             self.image = pygame.image.load('resources/images/image_ship_exploded.png')
+
+
+""" The bullet class takes an image file, a direction of travel (either 1 or -1) that gets multiplied by the velocity to
+make it move left or right. It gets a target which it uses to check if hit boxes are overlapping, using the detect 
+method. If so, it returns True.  """
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -145,6 +178,11 @@ class Bullet(pygame.sprite.Sprite):
 
     def detect(self, target):
         return self.rect.colliderect(target.rect)
+
+
+""" The com class is almost identical to the player class, except with slight random variations based on the difficulty
+selected by the user. It also has the fire and update methods, for the same reason as the players. One difference is
+that it doesn't have a direction indicator, as it can only be on the right side. """
 
 
 class Com(pygame.sprite.Sprite):
@@ -183,6 +221,8 @@ class Com(pygame.sprite.Sprite):
         if self.health <= 0:
             self.image = pygame.image.load('resources/images/image_ship_exploded.png')
 
+
+""" Creating Objects """
 
 # Sounds
 music = pygame.mixer.music.load('resources/sounds/music.mp3')
@@ -231,13 +271,8 @@ selector2 = Selector(
     'resources/selectors/selector_ship3.png',
     [658, 206])
 
-# Setting Starting Variables
-done = False
-font = pygame.freetype.Font('resources/fonts/digital-7.ttf', 80)
+# Setting starting variables.
 scene = 0
-leftpos = [10, 320]
-rightpos = [1190, 320]
-
 gamemode = 0
 game = 0
 choice = 0
@@ -248,7 +283,7 @@ move_steps = 0
 bullets = []
 pause = 0
 
-# Starting Menu Music
+# Starting music (-1 makes it play forever).
 pygame.mixer.music.play(-1)
 
 while not done:
@@ -258,6 +293,7 @@ while not done:
         if event.type == pygame.QUIT:
             done = True
 
+    # Gets the state of the mouse and it's location that will be all throughout the program.
     pressed = pygame.mouse.get_pressed()
     mouse = pygame.mouse.get_pos()
 
@@ -271,9 +307,6 @@ while not done:
                 button.play()
         else:
             hovering = 0
-
-        # Base Fill
-        window.fill(white)
 
         # Loading Static Images
         window.blit(bg_menu.image, bg_menu.rect)
@@ -319,7 +352,7 @@ while not done:
             window.blit(image_menu_selectbuttons.image, image_menu_selectbuttons.rect)
             window.blit(image_singleplayer_menu.image, image_singleplayer_menu.rect)
 
-            # Checking for Play Button Press
+            # Checking for Play Button hovering and press
             if 1020 < mouse[0] < 1250 and 40 < mouse[1] < 104:
 
                 hovering = 1
@@ -332,34 +365,39 @@ while not done:
 
                 hovering = 0
 
-            # Weapon Selection
+            # Weapon Selection Menu
+            # Left arrow
             if 215 < mouse[0] < 237 and 308 < mouse[1] < 348:
                 if pressed[0] == 1 and choice > 0:
                     choice -= 1
-
+            # Right arrow
             if 647 < mouse[0] < 668 and 308 < mouse[1] < 348:
                 if pressed[0] == 1 and choice < 2:
                     choice += 1
 
             # Com Difficulty Selection
+            # Easy button
             if 967 < mouse[0] < 1171 and 350 < mouse[1] < 415:
                 if pressed[0] == 1:
                     difficulty = 0
+            # Medium button
             if 967 < mouse[0] < 1171 and 430 < mouse[1] < 495:
                 if pressed[0] == 1:
                     difficulty = 1
+            # Hard button
             if 967 < mouse[0] < 1171 and 510 < mouse[1] < 575:
                 if pressed[0] == 1:
                     difficulty = 2
 
             # Loading Dynamic Images
-            com_diff.selection(difficulty)
+            com_diff.selection(difficulty)  # Update difficulty button
             window.blit(com_diff.image, com_diff.rect)
-            selector.selection(choice)
+            selector.selection(choice)  # Update weapon selector
             window.blit(selector.image, selector.rect)
-            button_play.hover(hovering)
+            button_play.hover(hovering)  # Update play button if hovering
             window.blit(button_play.image, button_play.rect)
 
+        # Create player and com based on weapon and difficulty choices.
         player = Player(choice, 1, leftpos)
         com = Com(difficulty, rightpos)
 
@@ -372,7 +410,7 @@ while not done:
             window.blit(image_menu_selectbuttons1.image, image_menu_selectbuttons1.rect)
             window.blit(image_menu_selectbuttons2.image, image_menu_selectbuttons2.rect)
 
-            # Checking for Play Button Press
+            # Checking for Play Button hovering and press
             if 1020 < mouse[0] < 1250 and 40 < mouse[1] < 104:
 
                 hovering = 1
@@ -389,20 +427,23 @@ while not done:
 
             # Player 1
 
+            # Checking if player 1 left selector arrow is pressed.
             if 114 < mouse[0] < 137 and 308 < mouse[1] < 348:
                 if pressed[0] == 1 and choice1 > 0:
                     choice1 -= 1
 
+            # Checking if player 1 right selector arrow is pressed.
             if 547 < mouse[0] < 565 and 308 < mouse[1] < 348:
                 if pressed[0] == 1 and choice1 < 2:
                     choice1 += 1
 
             # Player 2
 
+            # Checking if player 2 left selector arrow is pressed.
             if 716 < mouse[0] < 739 and 308 < mouse[1] < 348:
                 if pressed[0] == 1 and choice2 > 0:
                     choice2 -= 1
-
+            # Checking if player 2 right selector arrow is pressed.
             if 1150 < mouse[0] < 1169 and 308 < mouse[1] < 348:
                 if pressed[0] == 1 and choice2 < 2:
                     choice2 += 1
@@ -420,6 +461,7 @@ while not done:
         # Render Player Number Selection Button.
         window.blit(button_players.image, button_players.rect)
 
+        # Create left and right players based on weapon choice.
         player_left = Player(choice1, 1, leftpos)
         player_right = Player(choice2, -1, rightpos)
 
